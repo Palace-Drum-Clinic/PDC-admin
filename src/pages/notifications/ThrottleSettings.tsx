@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTriggerStore } from "@/stores/triggerStore";
@@ -19,8 +19,12 @@ interface ThrottleSettingsProps {
 }
 
 export function ThrottleSettings({ onClose }: ThrottleSettingsProps) {
-  const { throttleSettings, updateThrottleSettings } = useTriggerStore();
+  const { throttleSettings, updateThrottleSettings, fetchThrottleSettings } = useTriggerStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchThrottleSettings();
+  }, []);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -10,6 +10,7 @@ import {
   Edit,
   Send,
   Zap,
+  BarChart3,
 } from "lucide-react";
 import {
   useReactTable,
@@ -136,6 +137,13 @@ export function NotificationsListPage() {
       header: "",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
+          {row.original.status === "sent" && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={`/notifications/${row.original.id}`}>
+                <BarChart3 className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
           {row.original.status === "pending" && (
             <Button variant="ghost" size="sm" asChild>
               <Link to={`/notifications/${row.original.id}/edit`}>

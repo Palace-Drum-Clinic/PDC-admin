@@ -30,7 +30,7 @@ interface NotificationState {
   sendInstantNotification: (input: {
     title: string;
     body: string;
-    audience_type: "all" | "admins" | "segment" | "users";
+    audience_type: "all" | "all_users" | "registered_only" | "anonymous_only" | "admins" | "segment" | "users";
   }) => Promise<{
     success: boolean;
     error?: string;
@@ -179,6 +179,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const targetAudience =
         input.audience_type === "all"
           ? { type: "all" }
+          : input.audience_type === "all_users"
+          ? { type: "all_users" }
+          : input.audience_type === "registered_only"
+          ? { type: "registered_only" }
+          : input.audience_type === "anonymous_only"
+          ? { type: "anonymous_only" }
           : input.audience_type === "admins"
           ? { type: "admins" }
           : input.audience_type === "segment"
@@ -213,7 +219,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const { error: functionError } = await supabase.functions.invoke(
         "process-notifications",
         {
-          body: { notification_id: notification.id },
+          body: { notification_id: (notification as ScheduledNotification).id },
         }
       );
 

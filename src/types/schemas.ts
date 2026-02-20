@@ -2,7 +2,10 @@ import { z } from "zod";
 
 // Notification schemas
 export const targetAudienceSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("all") }),
+  z.object({ type: z.literal("all") }), // Legacy: all registered users
+  z.object({ type: z.literal("all_users") }), // New: all registered + anonymous users
+  z.object({ type: z.literal("registered_only") }), // New: only registered users
+  z.object({ type: z.literal("anonymous_only") }), // New: only anonymous users
   z.object({ type: z.literal("admins") }),
   z.object({
     type: z.literal("segment"),
@@ -288,3 +291,83 @@ export type DrumZoneRoomInput = z.infer<typeof drumZoneRoomSchema>;
 export type DrumZoneBookingInput = z.infer<typeof drumZoneBookingSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type TargetAudience = z.infer<typeof targetAudienceSchema>;
+
+// Feature Request schemas
+export const featureRequestStatusSchema = z.enum([
+  "submitted",
+  "under_review",
+  "accepted",
+  "in_progress",
+  "testing",
+  "completed",
+  "released",
+  "rejected",
+  "duplicate",
+]);
+
+export const featureRequestPrioritySchema = z.enum([
+  "low",
+  "medium",
+  "high",
+  "critical",
+]);
+
+export const featureRequestSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200, "Title too long"),
+  description: z
+    .string()
+    .min(1, "Description is required")
+    .max(5000, "Description too long"),
+  status: featureRequestStatusSchema.optional().default("submitted"),
+  priority: featureRequestPrioritySchema.optional().default("medium"),
+  category: z.string().max(100).optional(),
+  tags: z.array(z.string()).optional(),
+  admin_notes: z.string().max(5000).optional(),
+  estimated_effort: z.number().int().min(1).max(100).optional(),
+  target_release: z.string().max(50).optional(),
+  is_archived: z.boolean().optional().default(false),
+  archive_reason: z.string().max(500).optional(),
+});
+
+export const featureRequestUpdateSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().min(1).max(5000).optional(),
+  status: featureRequestStatusSchema.optional(),
+  priority: featureRequestPrioritySchema.optional(),
+  category: z.string().max(100).optional(),
+  tags: z.array(z.string()).optional(),
+  admin_notes: z.string().max(5000).optional(),
+  estimated_effort: z.number().int().min(1).max(100).optional(),
+  target_release: z.string().max(50).optional(),
+  is_archived: z.boolean().optional(),
+  archive_reason: z.string().max(500).optional(),
+});
+
+export const featureRequestCommentSchema = z.object({
+  content: z
+    .string()
+    .min(1, "Comment cannot be empty")
+    .max(2000, "Comment too long"),
+  is_admin_comment: z.boolean().optional().default(true),
+});
+
+export const featureRequestFilterSchema = z.object({
+  status: z.array(featureRequestStatusSchema).optional(),
+  priority: z.array(featureRequestPrioritySchema).optional(),
+  category: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+  search: z.string().optional(),
+  is_archived: z.boolean().optional(),
+  created_after: z.string().datetime().optional(),
+  created_before: z.string().datetime().optional(),
+  min_votes: z.number().int().min(0).optional(),
+});
+
+export type FeatureRequestInput = z.infer<typeof featureRequestSchema>;
+export type FeatureRequestUpdateInput = z.infer<
+  typeof featureRequestUpdateSchema
+>;
+export type FeatureRequestCommentInput = z.infer<
+  typeof featureRequestCommentSchema
+>;
+export type FeatureRequestFilter = z.infer<typeof featureRequestFilterSchema>;

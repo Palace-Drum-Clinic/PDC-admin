@@ -17,6 +17,15 @@ interface TriggerCondition {
   [key: string]: any;
 }
 
+interface ThrottleSettings {
+  id: string;
+  enabled: boolean;
+  max_notifications_per_day: number;
+  cooldown_hours_between_campaigns: number;
+  priority_override_threshold: number;
+  respect_user_preferences: boolean;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -29,6 +38,27 @@ serve(async (req) => {
 
     console.log("Processing notification triggers...");
 
+    // (a) Read throttle settings from DB
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("notification_throttle_settings")
+      .select("*")
+      .limit(1)
+      .single();
+
+    if (settingsError) {
+      console.error("Error fetching throttle settings:", settingsError);
+      // Fall back to defaults if settings can't be loaded
+    }
+
+    const settings: ThrottleSettings = settingsData ?? {
+      id: "",
+      enabled: true,
+      max_notifications_per_day: 3,
+      cooldown_hours_between_campaigns: 24,
+      priority_override_threshold: 8,
+      respect_user_preferences: true,
+    };
+
     // Fetch active triggers
     const { data: triggers, error: triggerError } = await supabase
       .from("notification_triggers")
@@ -38,7 +68,7 @@ serve(async (req) => {
 
     if (triggerError) {
       console.error("Error fetching triggers:", triggerError);
-      throw triggerError;
+      throw new Error(triggerError.message ?? JSON.stringify(triggerError));
     }
 
     if (!triggers || triggers.length === 0) {
@@ -70,11 +100,16 @@ serve(async (req) => {
 
         for (const user of eligibleUsers) {
           try {
-            // Check throttling
-            const canSend = await checkThrottling(supabase, user.id, trigger);
+            // (b/d) Check throttling with DB settings, using authUserID
+            const canSend = await checkThrottling(
+              supabase,
+              user.authUserID,
+              trigger,
+              settings
+            );
             if (!canSend) {
               console.log(
-                `Throttled notification for user ${user.id} on trigger ${trigger.name}`
+                `Throttled notification for user ${user.authUserID} on trigger ${trigger.name}`
               );
               continue;
             }
@@ -89,19 +124,18 @@ serve(async (req) => {
             if (notificationResult.success) {
               totalSent++;
 
-              // Record execution
+              // (b) Use authUserID in record calls
               await recordExecution(
                 supabase,
                 trigger.id,
-                user.id,
+                user.authUserID,
                 true,
                 notificationResult.notificationId
               );
 
-              // Record in user history
               await recordUserHistory(
                 supabase,
-                user.id,
+                user.authUserID,
                 notificationResult.notificationId!,
                 trigger.id,
                 trigger.trigger_type
@@ -110,27 +144,32 @@ serve(async (req) => {
               await recordExecution(
                 supabase,
                 trigger.id,
-                user.id,
+                user.authUserID,
                 false,
                 null,
                 notificationResult.error
               );
-              errors.push(`User ${user.id}: ${notificationResult.error}`);
+              errors.push(
+                `User ${user.authUserID}: ${notificationResult.error}`
+              );
             }
 
             totalProcessed++;
           } catch (userError) {
-            console.error(`Error processing user ${user.id}:`, userError);
+            console.error(
+              `Error processing user ${user.authUserID}:`,
+              userError
+            );
             await recordExecution(
               supabase,
               trigger.id,
-              user.id,
+              user.authUserID,
               false,
               null,
               userError instanceof Error ? userError.message : "Unknown error"
             );
             errors.push(
-              `User ${user.id}: ${
+              `User ${user.authUserID}: ${
                 userError instanceof Error ? userError.message : "Unknown error"
               }`
             );
@@ -164,10 +203,17 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error processing triggers:", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "message" in error
+        ? String((error as any).message)
+        : JSON.stringify(error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: message,
+        detail: typeof error === "object" ? JSON.stringify(error) : String(error),
       }),
       {
         status: 500,
@@ -186,19 +232,19 @@ async function findEligibleUsers(supabase: any, condition: TriggerCondition) {
         now.getTime() - condition.days_inactive * 24 * 60 * 60 * 1000
       );
 
-      // Find users who haven't had any analytics events since cutoff
+      // (c) Include authUserID in select
       const { data, error } = await supabase
         .from("AppUser")
         .select(
           `
-          id, firstName, lastName, pushToken, notificationsEnabled,
+          id, authUserID, firstName, lastName, pushToken, notificationsEnabled,
           analytics_events!inner(timestamp)
         `
         )
         .eq("notificationsEnabled", true)
         .not("pushToken", "is", null)
         .lt("analytics_events.timestamp", cutoffDate.toISOString())
-        .limit(100); // Process in batches
+        .limit(100);
 
       if (error) throw error;
       return data || [];
@@ -209,10 +255,9 @@ async function findEligibleUsers(supabase: any, condition: TriggerCondition) {
         now.getTime() - condition.hours_since_signup * 60 * 60 * 1000
       );
 
-      // Find users who signed up but haven't completed profile
       const { data, error } = await supabase
         .from("AppUser")
-        .select("*")
+        .select("id, authUserID, firstName, lastName, pushToken, notificationsEnabled")
         .lt("createdAt", cutoffDate.toISOString())
         .or("firstName.is.null,lastName.is.null")
         .eq("notificationsEnabled", true)
@@ -224,11 +269,6 @@ async function findEligibleUsers(supabase: any, condition: TriggerCondition) {
     }
 
     case "video_abandoned": {
-      const cutoffDate = new Date(
-        now.getTime() - condition.hours_since_abandonment * 60 * 60 * 1000
-      );
-
-      // Find users who abandoned videos (watched < threshold%)
       const { data, error } = await supabase.rpc("find_video_abandoners", {
         watch_threshold: condition.watch_percentage_threshold,
         hours_since: condition.hours_since_abandonment,
@@ -241,11 +281,6 @@ async function findEligibleUsers(supabase: any, condition: TriggerCondition) {
     }
 
     case "practice_streak_broken": {
-      const cutoffDate = new Date(
-        now.getTime() - condition.days_since_break * 24 * 60 * 60 * 1000
-      );
-
-      // Find users whose practice streak was broken
       const { data, error } = await supabase.rpc("find_broken_streaks", {
         min_streak: condition.min_streak_length,
         days_since_break: condition.days_since_break,
@@ -260,7 +295,6 @@ async function findEligibleUsers(supabase: any, condition: TriggerCondition) {
         now.getTime() - condition.celebration_window_hours * 60 * 60 * 1000
       );
 
-      // Find users who recently achieved milestones
       const { data, error } = await supabase.rpc("find_recent_milestones", {
         milestone_type: condition.milestone_type,
         threshold_value: condition.threshold_value,
@@ -276,20 +310,26 @@ async function findEligibleUsers(supabase: any, condition: TriggerCondition) {
   }
 }
 
+// (d) Accept settings as a parameter
 async function checkThrottling(
   supabase: any,
-  userId: string,
-  trigger: any
+  authUserID: string,
+  trigger: any,
+  settings: ThrottleSettings
 ): Promise<boolean> {
+  if (!settings.enabled) {
+    return true;
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Check daily notification limit (default 3 per day)
   const { data: dailyHistory, error } = await supabase
     .from("user_notification_history")
     .select("*")
-    .eq("user_id", userId)
-    .gte("sent_at", today.toISOString());
+    .eq("user_id", authUserID)
+    .gte("sent_at", today.toISOString())
+    .order("sent_at", { ascending: false });
 
   if (error) {
     console.error("Error checking throttling:", error);
@@ -297,29 +337,28 @@ async function checkThrottling(
   }
 
   const dailyCount = dailyHistory?.length || 0;
-  if (dailyCount >= 3) {
-    // Allow high priority notifications to override
-    if (trigger.priority >= 8) {
+  if (dailyCount >= settings.max_notifications_per_day) {
+    if (trigger.priority >= settings.priority_override_threshold) {
       console.log(
-        `High priority trigger ${trigger.name} overriding daily limit for user ${userId}`
+        `High priority trigger ${trigger.name} overriding daily limit for user ${authUserID}`
       );
       return true;
     }
     return false;
   }
 
-  // Check cooldown between notifications (24 hours default)
+  // Check cooldown between notifications
   if (dailyHistory && dailyHistory.length > 0) {
     const lastNotification = new Date(dailyHistory[0].sent_at);
     const cooldownEnd = new Date(
-      lastNotification.getTime() + 24 * 60 * 60 * 1000
+      lastNotification.getTime() +
+        settings.cooldown_hours_between_campaigns * 60 * 60 * 1000
     );
 
     if (new Date() < cooldownEnd) {
-      // Allow high priority notifications to override cooldown
-      if (trigger.priority >= 8) {
+      if (trigger.priority >= settings.priority_override_threshold) {
         console.log(
-          `High priority trigger ${trigger.name} overriding cooldown for user ${userId}`
+          `High priority trigger ${trigger.name} overriding cooldown for user ${authUserID}`
         );
         return true;
       }
@@ -336,11 +375,10 @@ async function createAndSendNotification(
   user: any
 ) {
   try {
-    // Personalize notification content
     const personalizedTitle = personalizeContent(trigger.title, user);
     const personalizedBody = personalizeContent(trigger.body, user);
 
-    // Create scheduled notification
+    // (b) Use authUserID for target_audience so process-notifications can match
     const { data: notification, error: createError } = await supabase
       .from("scheduled_notifications")
       .insert({
@@ -350,12 +388,12 @@ async function createAndSendNotification(
         status: "pending",
         target_audience: {
           type: "users",
-          userIds: [user.id],
+          userIds: [user.authUserID],
         },
         data: {
           trigger_id: trigger.id,
           trigger_type: trigger.trigger_type,
-          user_id: user.id,
+          user_id: user.authUserID,
         },
       })
       .select()
@@ -363,7 +401,6 @@ async function createAndSendNotification(
 
     if (createError) throw createError;
 
-    // Process the notification immediately
     const { error: processError } = await supabase.functions.invoke(
       "process-notifications",
       {

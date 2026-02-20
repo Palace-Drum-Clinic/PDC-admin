@@ -33,7 +33,7 @@ const formSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title too long"),
   body: z.string().min(1, "Body is required").max(500, "Body too long"),
   scheduled_for: z.string().optional(),
-  audience_type: z.enum(["all", "admins", "segment", "users"]),
+  audience_type: z.enum(["all", "all_users", "registered_only", "anonymous_only", "admins", "segment", "users"]),
   send_immediately: z.boolean(),
 });
 
@@ -182,6 +182,12 @@ export function NotificationFormPage() {
         const targetAudience: TargetAudience =
           data.audience_type === "all"
             ? { type: "all" }
+            : data.audience_type === "all_users"
+            ? { type: "all_users" }
+            : data.audience_type === "registered_only"
+            ? { type: "registered_only" }
+            : data.audience_type === "anonymous_only"
+            ? { type: "anonymous_only" }
             : data.audience_type === "admins"
             ? { type: "admins" }
             : data.audience_type === "segment"
@@ -441,7 +447,10 @@ export function NotificationFormPage() {
                 {...register("audience_type")}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <option value="all">All Users</option>
+                <option value="all_users">All Users (Registered + Anon)</option>
+                <option value="registered_only">Registered Users (Non-Anon)</option>
+                <option value="anonymous_only">Anon Users Only</option>
+                <option value="all">All Registered Users (Legacy)</option>
                 <option value="admins">Admins Only</option>
                 <option value="segment">Custom Segment</option>
                 <option value="users">Specific Users</option>
@@ -451,6 +460,9 @@ export function NotificationFormPage() {
                   {errors.audience_type.message}
                 </p>
               )}
+              <p className="text-xs text-muted-foreground">
+                Choose who should receive this notification. Anon users are app users who haven't signed up yet.
+              </p>
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">

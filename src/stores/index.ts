@@ -7,3 +7,4 @@ export { useUsersStore } from "./usersStore";
 export { useGoalsStore } from "./goalsStore";
 export { useBookingsStore } from "./bookingsStore";
 export { useAnalyticsStore } from "./analyticsStore";
+export { useFeatureRequestStore } from "./featureRequestStore";

@@ -7,6 +7,7 @@ import type {
   UserNotificationHistory,
   NotificationTriggerInput,
   ThrottleSettings,
+  NotificationThrottleSettings,
 } from "@/types";
 
 interface TriggerState {
@@ -48,6 +49,7 @@ interface TriggerState {
   }>;
 
   // Throttle management
+  fetchThrottleSettings: () => Promise<void>;
   updateThrottleSettings: (settings: Partial<ThrottleSettings>) => Promise<{
     success: boolean;
     error?: string;
@@ -294,9 +296,69 @@ export const useTriggerStore = create<TriggerState>()(
         }
       },
 
+      fetchThrottleSettings: async () => {
+        try {
+          const { data, error } = await supabase
+            .from("notification_throttle_settings")
+            .select("*")
+            .limit(1)
+            .single() as unknown as {
+              data: NotificationThrottleSettings | null;
+              error: Error | null;
+            };
+
+          if (error) throw error;
+
+          if (data) {
+            set({
+              throttleSettings: {
+                enabled: data.enabled,
+                max_notifications_per_day: data.max_notifications_per_day,
+                cooldown_hours_between_campaigns:
+                  data.cooldown_hours_between_campaigns,
+                priority_override_threshold: data.priority_override_threshold,
+                respect_user_preferences: data.respect_user_preferences,
+              },
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching throttle settings:", error);
+        }
+      },
+
       updateThrottleSettings: async (settings) => {
         try {
           const newSettings = { ...get().throttleSettings, ...settings };
+
+          // Persist to DB — fetch the row id first, then upsert
+          const { data: existing } = await supabase
+            .from("notification_throttle_settings")
+            .select("id")
+            .limit(1)
+            .single() as unknown as {
+              data: Pick<NotificationThrottleSettings, "id"> | null;
+              error: Error | null;
+            };
+
+          if (existing) {
+            const { error } = await supabase
+              .from("notification_throttle_settings")
+              .update({
+                enabled: newSettings.enabled,
+                max_notifications_per_day:
+                  newSettings.max_notifications_per_day,
+                cooldown_hours_between_campaigns:
+                  newSettings.cooldown_hours_between_campaigns,
+                priority_override_threshold:
+                  newSettings.priority_override_threshold,
+                respect_user_preferences: newSettings.respect_user_preferences,
+                updated_at: new Date().toISOString(),
+              } as never)
+              .eq("id", existing.id);
+
+            if (error) throw error;
+          }
+
           set({ throttleSettings: newSettings });
           return { success: true };
         } catch (error) {
@@ -375,7 +437,7 @@ export const useTriggerStore = create<TriggerState>()(
         try {
           // Call the Edge Function to process triggers
           const { error } = await supabase.functions.invoke(
-            "process-notifications",
+            "process-triggers",
             { body: {} }
           );
 

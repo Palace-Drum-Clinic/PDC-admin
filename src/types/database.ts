@@ -11,6 +11,21 @@ export type Json =
 
 export type UserRole = "user" | "admin" | "super_admin";
 
+export type FeatureRequestStatus =
+  | "submitted"
+  | "under_review"
+  | "accepted"
+  | "in_progress"
+  | "testing"
+  | "completed"
+  | "released"
+  | "rejected"
+  | "duplicate";
+
+export type FeatureRequestPriority = "low" | "medium" | "high" | "critical";
+
+export type VoteType = "upvote" | "downvote";
+
 export interface Database {
   public: {
     Tables: {
@@ -65,6 +80,38 @@ export interface Database {
           email?: string | null;
           role?: UserRole;
           updatedAt?: string;
+        };
+      };
+      AnonymousUser: {
+        Row: {
+          id: string;
+          deviceId: string;
+          pushToken: string | null;
+          notificationsEnabled: boolean;
+          deviceInfo: Json | null;
+          createdAt: string;
+          updatedAt: string;
+          lastActiveAt: string | null;
+        };
+        Insert: {
+          id?: string;
+          deviceId: string;
+          pushToken?: string | null;
+          notificationsEnabled?: boolean;
+          deviceInfo?: Json | null;
+          createdAt?: string;
+          updatedAt?: string;
+          lastActiveAt?: string | null;
+        };
+        Update: {
+          id?: string;
+          deviceId?: string;
+          pushToken?: string | null;
+          notificationsEnabled?: boolean;
+          deviceInfo?: Json | null;
+          createdAt?: string;
+          updatedAt?: string;
+          lastActiveAt?: string | null;
         };
       };
       scheduled_notifications: {
@@ -709,8 +756,187 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+      };      feature_requests: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+          status: FeatureRequestStatus;
+          priority: FeatureRequestPriority;
+          category: string | null;
+          tags: string[] | null;
+          admin_notes: string | null;
+          estimated_effort: number | null;
+          target_release: string | null;
+          vote_count: number;
+          comment_count: number;
+          is_archived: boolean;
+          archive_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description: string;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+          status?: FeatureRequestStatus;
+          priority?: FeatureRequestPriority;
+          category?: string | null;
+          tags?: string[] | null;
+          admin_notes?: string | null;
+          estimated_effort?: number | null;
+          target_release?: string | null;
+          vote_count?: number;
+          comment_count?: number;
+          is_archived?: boolean;
+          archive_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+          status?: FeatureRequestStatus;
+          priority?: FeatureRequestPriority;
+          category?: string | null;
+          tags?: string[] | null;
+          admin_notes?: string | null;
+          estimated_effort?: number | null;
+          target_release?: string | null;
+          vote_count?: number;
+          comment_count?: number;
+          is_archived?: boolean;
+          archive_reason?: string | null;
+        };
       };
-      practice_logs: {
+      feature_request_votes: {
+        Row: {
+          id: string;
+          feature_request_id: string;
+          user_id: string | null;
+          device_id: string | null;
+          voted_at: string;
+          vote_type: VoteType;
+          ip_address: string | null;
+        };
+        Insert: {
+          id?: string;
+          feature_request_id: string;
+          user_id?: string | null;
+          device_id?: string | null;
+          voted_at?: string;
+          vote_type: VoteType;
+          ip_address?: string | null;
+        };
+        Update: {
+          id?: string;
+          feature_request_id?: string;
+          user_id?: string | null;
+          device_id?: string | null;
+          voted_at?: string;
+          vote_type?: VoteType;
+          ip_address?: string | null;
+        };
+      };
+      feature_request_comments: {
+        Row: {
+          id: string;
+          feature_request_id: string;
+          parent_comment_id: string | null;
+          user_id: string;
+          content: string;
+          created_at: string;
+          updated_at: string;
+          is_admin_comment: boolean;
+          is_edited: boolean;
+          is_deleted: boolean;
+        };
+        Insert: {
+          id?: string;
+          feature_request_id: string;
+          parent_comment_id?: string | null;
+          user_id: string;
+          content: string;
+          created_at?: string;
+          updated_at?: string;
+          is_admin_comment?: boolean;
+          is_edited?: boolean;
+          is_deleted?: boolean;
+        };
+        Update: {
+          id?: string;
+          feature_request_id?: string;
+          parent_comment_id?: string | null;
+          user_id?: string;
+          content?: string;
+          created_at?: string;
+          updated_at?: string;
+          is_admin_comment?: boolean;
+          is_edited?: boolean;
+          is_deleted?: boolean;
+        };
+      };
+      feature_request_subscriptions: {
+        Row: {
+          id: string;
+          feature_request_id: string;
+          user_id: string;
+          subscribed_at: string;
+          notification_preferences: Json | null;
+        };
+        Insert: {
+          id?: string;
+          feature_request_id: string;
+          user_id: string;
+          subscribed_at?: string;
+          notification_preferences?: Json | null;
+        };
+        Update: {
+          id?: string;
+          feature_request_id?: string;
+          user_id?: string;
+          subscribed_at?: string;
+          notification_preferences?: Json | null;
+        };
+      };
+      feature_request_admin_log: {
+        Row: {
+          id: string;
+          feature_request_id: string;
+          admin_user_id: string;
+          action: string;
+          old_value: Json | null;
+          new_value: Json | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          feature_request_id: string;
+          admin_user_id: string;
+          action: string;
+          old_value?: Json | null;
+          new_value?: Json | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          feature_request_id?: string;
+          admin_user_id?: string;
+          action?: string;
+          old_value?: Json | null;
+          new_value?: Json | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+      };      practice_logs: {
         Row: {
           id: string;
           user_id: string;
@@ -739,6 +965,35 @@ export interface Database {
           created_at?: string;
         };
       };
+      notification_throttle_settings: {
+        Row: {
+          id: string;
+          enabled: boolean;
+          max_notifications_per_day: number;
+          cooldown_hours_between_campaigns: number;
+          priority_override_threshold: number;
+          respect_user_preferences: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          enabled?: boolean;
+          max_notifications_per_day?: number;
+          cooldown_hours_between_campaigns?: number;
+          priority_override_threshold?: number;
+          respect_user_preferences?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          enabled?: boolean;
+          max_notifications_per_day?: number;
+          cooldown_hours_between_campaigns?: number;
+          priority_override_threshold?: number;
+          respect_user_preferences?: boolean;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
       admin_users: {
@@ -757,12 +1012,58 @@ export interface Database {
         Args: { user_id: string };
         Returns: boolean;
       };
+      find_video_abandoners: {
+        Args: {
+          watch_threshold: number;
+          hours_since: number;
+          video_id?: string | null;
+          series_id?: string | null;
+        };
+        Returns: Array<{
+          id: string;
+          authUserID: string;
+          firstName: string | null;
+          lastName: string | null;
+          pushToken: string | null;
+          notificationsEnabled: boolean | null;
+        }>;
+      };
+      find_broken_streaks: {
+        Args: {
+          min_streak: number;
+          days_since_break: number;
+        };
+        Returns: Array<{
+          id: string;
+          authUserID: string;
+          firstName: string | null;
+          lastName: string | null;
+          pushToken: string | null;
+          notificationsEnabled: boolean | null;
+        }>;
+      };
+      find_recent_milestones: {
+        Args: {
+          milestone_type: string;
+          threshold_value: number;
+          window_start: string;
+        };
+        Returns: Array<{
+          id: string;
+          authUserID: string;
+          firstName: string | null;
+          lastName: string | null;
+          pushToken: string | null;
+          notificationsEnabled: boolean | null;
+        }>;
+      };
     };
   };
 }
 
 // Convenience type exports
 export type AppUser = Database["public"]["Tables"]["AppUser"]["Row"];
+export type AnonymousUser = Database["public"]["Tables"]["AnonymousUser"]["Row"];
 export type ScheduledNotification =
   Database["public"]["Tables"]["scheduled_notifications"]["Row"];
 export type NotificationTemplate =
@@ -789,6 +1090,18 @@ export type UserNotificationHistory =
   Database["public"]["Tables"]["user_notification_history"]["Row"];
 export type AnalyticsEvent =
   Database["public"]["Tables"]["analytics_events"]["Row"];
+export type FeatureRequest =
+  Database["public"]["Tables"]["feature_requests"]["Row"];
+export type FeatureRequestVote =
+  Database["public"]["Tables"]["feature_request_votes"]["Row"];
+export type FeatureRequestComment =
+  Database["public"]["Tables"]["feature_request_comments"]["Row"];
+export type FeatureRequestSubscription =
+  Database["public"]["Tables"]["feature_request_subscriptions"]["Row"];
+export type FeatureRequestAdminLog =
+  Database["public"]["Tables"]["feature_request_admin_log"]["Row"];
+export type NotificationThrottleSettings =
+  Database["public"]["Tables"]["notification_throttle_settings"]["Row"];
 
 // Additional types for analytics and templates
 export interface NotificationPerformance {

@@ -13,6 +13,7 @@ import {
   BookingsPage,
   NotificationsListPage,
   NotificationFormPage,
+  NotificationDetailPage,
   ContentListPage,
   VideoFormPage,
   SeriesFormPage,
@@ -22,6 +23,10 @@ import {
   RoomFormPage,
 } from "@/pages";
 import { AutomatedTriggersPage } from "@/pages/notifications";
+import {
+  FeatureRequestsListPage,
+  FeatureRequestDetailPage,
+} from "@/pages/feature-requests";
 
 function App() {
   const { initialize, isLoading } = useAuthStore();
@@ -65,6 +70,10 @@ function App() {
           <Route path="notifications" element={<NotificationsListPage />} />
           <Route path="notifications/new" element={<NotificationFormPage />} />
           <Route
+            path="notifications/:id"
+            element={<NotificationDetailPage />}
+          />
+          <Route
             path="notifications/:id/edit"
             element={<NotificationFormPage />}
           />
@@ -99,6 +108,10 @@ function App() {
           <Route path="bookings/sites/:id/edit" element={<SiteFormPage />} />
           <Route path="bookings/rooms/new" element={<RoomFormPage />} />
           <Route path="bookings/rooms/:id/edit" element={<RoomFormPage />} />
+
+          {/* Feature Requests */}
+          <Route path="feature-requests" element={<FeatureRequestsListPage />} />
+          <Route path="feature-requests/:id" element={<FeatureRequestDetailPage />} />
         </Route>
 
         {/* Catch all redirect */}

@@ -32,7 +32,7 @@ export function TriggerAnalytics({ onClose }: TriggerAnalyticsProps) {
 
   useEffect(() => {
     fetchTriggers();
-  }, [fetchTriggers]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (triggers.length > 0 && !selectedTriggerId) {

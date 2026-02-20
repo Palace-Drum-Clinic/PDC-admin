@@ -10,6 +10,7 @@ import {
   Calendar,
   LogOut,
   Drum,
+  Lightbulb,
 } from "lucide-react";
 import { useAuthStore } from "@/stores";
 import { Button } from "@/components/ui";
@@ -22,6 +23,7 @@ const navigation = [
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Goals", href: "/goals", icon: Target },
   { name: "Drum Zone", href: "/bookings", icon: Calendar },
+  { name: "Feature Requests", href: "/feature-requests", icon: Lightbulb },
 ];
 
 export function Sidebar() {

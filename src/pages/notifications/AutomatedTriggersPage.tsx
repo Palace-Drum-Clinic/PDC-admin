@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Play, BarChart3, Settings, AlertCircle } from "lucide-react";
+import { Plus, Play, Settings, AlertCircle } from "lucide-react";
 import { useTriggerStore } from "@/stores/triggerStore";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -9,16 +9,17 @@ import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 import { Dialog } from "@/components/ui/Dialog";
 import { TriggerForm } from "./TriggerForm";
-import { TriggerAnalytics } from "./TriggerAnalytics";
 import { ThrottleSettings } from "./ThrottleSettings";
 import type { NotificationTrigger } from "@/types";
 
 export function AutomatedTriggersPage() {
   const {
     triggers,
+    executions,
     isLoading,
     error,
     fetchTriggers,
+    fetchExecutions,
     toggleTrigger,
     deleteTrigger,
     processTriggers,
@@ -26,14 +27,25 @@ export function AutomatedTriggersPage() {
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
   const [selectedTrigger, setSelectedTrigger] =
     useState<NotificationTrigger | null>(null);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchTriggers();
-  }, [fetchTriggers]);
+    fetchExecutions();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Count successful sends per trigger
+  const sendCountByTrigger = executions.reduce<Record<string, number>>(
+    (acc, e) => {
+      if ((e as any).success) {
+        acc[(e as any).trigger_id] = (acc[(e as any).trigger_id] || 0) + 1;
+      }
+      return acc;
+    },
+    {}
+  );
 
   const handleToggleTrigger = async (id: string, isActive: boolean) => {
     await toggleTrigger(id, isActive);
@@ -118,14 +130,6 @@ export function AutomatedTriggersPage() {
             Throttle Settings
           </Button>
           <Button
-            variant="outline"
-            onClick={() => setShowAnalytics(true)}
-            className="gap-2"
-          >
-            <BarChart3 className="w-4 h-4" />
-            Analytics
-          </Button>
-          <Button
             onClick={handleProcessTriggers}
             disabled={processing}
             className="gap-2"
@@ -188,6 +192,9 @@ export function AutomatedTriggersPage() {
                   {getTriggerTypeLabel(trigger.trigger_type)}
                 </Badge>
                 <Badge variant="outline">Priority {trigger.priority}</Badge>
+                <Badge variant="outline" className="ml-auto">
+                  {sendCountByTrigger[trigger.id] || 0} sent
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>
@@ -272,10 +279,6 @@ export function AutomatedTriggersPage() {
         <ThrottleSettings onClose={() => setShowSettings(false)} />
       </Dialog>
 
-      {/* Analytics Dialog */}
-      <Dialog open={showAnalytics} onClose={() => setShowAnalytics(false)}>
-        <TriggerAnalytics onClose={() => setShowAnalytics(false)} />
-      </Dialog>
     </div>
   );
 }
