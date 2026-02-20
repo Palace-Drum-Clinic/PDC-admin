@@ -35,15 +35,15 @@ interface FeatureRequestState {
   fetchVotes: (requestId: string) => Promise<void>;
   fetchAdminLogs: (requestId: string) => Promise<void>;
   createRequest: (
-    input: FeatureRequestInput
+    input: FeatureRequestInput,
   ) => Promise<{ success: boolean; data?: FeatureRequest; error?: string }>;
   updateRequest: (
     id: string,
-    input: FeatureRequestUpdateInput
+    input: FeatureRequestUpdateInput,
   ) => Promise<{ success: boolean; data?: FeatureRequest; error?: string }>;
   addComment: (
     requestId: string,
-    input: FeatureRequestCommentInput
+    input: FeatureRequestCommentInput,
   ) => Promise<{
     success: boolean;
     data?: FeatureRequestComment;
@@ -52,18 +52,20 @@ interface FeatureRequestState {
   updateStatus: (
     id: string,
     status: Database["public"]["Tables"]["feature_requests"]["Row"]["status"],
-    notes?: string
+    notes?: string,
   ) => Promise<{ success: boolean; error?: string }>;
   updatePriority: (
     id: string,
     priority: Database["public"]["Tables"]["feature_requests"]["Row"]["priority"],
-    notes?: string
+    notes?: string,
   ) => Promise<{ success: boolean; error?: string }>;
   archiveRequest: (
     id: string,
-    reason: string
+    reason: string,
   ) => Promise<{ success: boolean; error?: string }>;
-  unarchiveRequest: (id: string) => Promise<{ success: boolean; error?: string }>;
+  unarchiveRequest: (
+    id: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   deleteRequest: (id: string) => Promise<{ success: boolean; error?: string }>;
 }
 
@@ -90,7 +92,7 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
           .select(
             `
             *
-          `
+          `,
           )
           .order("created_at", { ascending: false });
 
@@ -118,7 +120,7 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
         }
         if (filters.search) {
           query = query.or(
-            `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+            `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`,
           );
         }
 
@@ -132,7 +134,8 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
         });
       } catch (error) {
         set({
-          error: error instanceof Error ? error.message : "Failed to fetch requests",
+          error:
+            error instanceof Error ? error.message : "Failed to fetch requests",
           isLoading: false,
         });
       }
@@ -146,7 +149,7 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
           .select(
             `
             *
-          `
+          `,
           )
           .eq("id", id)
           .single();
@@ -159,7 +162,8 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
         });
       } catch (error) {
         set({
-          error: error instanceof Error ? error.message : "Failed to fetch request",
+          error:
+            error instanceof Error ? error.message : "Failed to fetch request",
           isLoading: false,
         });
       }
@@ -172,7 +176,7 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
           .select(
             `
             *
-          `
+          `,
           )
           .eq("feature_request_id", requestId)
           .eq("is_deleted", false)
@@ -209,7 +213,7 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
           .select(
             `
             *
-          `
+          `,
           )
           .eq("feature_request_id", requestId)
           .order("created_at", { ascending: false });
@@ -246,7 +250,8 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to create request",
+          error:
+            error instanceof Error ? error.message : "Failed to create request",
         };
       }
     },
@@ -286,7 +291,7 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
 
         set({
           requests: get().requests.map((r) =>
-            r.id === id ? (data as FeatureRequest) : r
+            r.id === id ? (data as FeatureRequest) : r,
           ),
           selectedRequest:
             get().selectedRequest?.id === id
@@ -298,12 +303,16 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to update request",
+          error:
+            error instanceof Error ? error.message : "Failed to update request",
         };
       }
     },
 
-    addComment: async (requestId: string, input: FeatureRequestCommentInput) => {
+    addComment: async (
+      requestId: string,
+      input: FeatureRequestCommentInput,
+    ) => {
       try {
         const {
           data: { user },
@@ -324,7 +333,7 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
         if (error) throw error;
 
         // Update comment count
-        await (supabase.rpc as any)("increment_feature_request_comment_count", {
+        await supabase.rpc("increment_feature_request_comment_count", {
           request_id: requestId,
         });
 
@@ -334,7 +343,8 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to add comment",
+          error:
+            error instanceof Error ? error.message : "Failed to add comment",
         };
       }
     },
@@ -376,7 +386,8 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to update status",
+          error:
+            error instanceof Error ? error.message : "Failed to update status",
         };
       }
     },
@@ -419,7 +430,9 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
         return {
           success: false,
           error:
-            error instanceof Error ? error.message : "Failed to update priority",
+            error instanceof Error
+              ? error.message
+              : "Failed to update priority",
         };
       }
     },
@@ -456,7 +469,10 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to archive request",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to archive request",
         };
       }
     },
@@ -493,7 +509,9 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
         return {
           success: false,
           error:
-            error instanceof Error ? error.message : "Failed to unarchive request",
+            error instanceof Error
+              ? error.message
+              : "Failed to unarchive request",
         };
       }
     },
@@ -518,9 +536,10 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to delete request",
+          error:
+            error instanceof Error ? error.message : "Failed to delete request",
         };
       }
     },
-  })
+  }),
 );

@@ -62,7 +62,8 @@ export function FeatureRequestsListPage() {
     const newFilters: FeatureRequestFilter = {
       search: searchTerm || undefined,
       status: statusFilter.length > 0 ? (statusFilter as never) : undefined,
-      priority: priorityFilter.length > 0 ? (priorityFilter as never) : undefined,
+      priority:
+        priorityFilter.length > 0 ? (priorityFilter as never) : undefined,
       is_archived: showArchived ? true : false,
     };
     setFilters(newFilters);
@@ -209,7 +210,8 @@ export function FeatureRequestsListPage() {
             <div className="text-2xl font-bold">
               {
                 requests.filter(
-                  (r) => r.status === "submitted" || r.status === "under_review"
+                  (r) =>
+                    r.status === "submitted" || r.status === "under_review",
                 ).length
               }
             </div>
@@ -221,7 +223,7 @@ export function FeatureRequestsListPage() {
             <div className="text-2xl font-bold">
               {
                 requests.filter(
-                  (r) => r.status === "in_progress" || r.status === "testing"
+                  (r) => r.status === "in_progress" || r.status === "testing",
                 ).length
               }
             </div>
@@ -298,7 +300,11 @@ export function FeatureRequestsListPage() {
                     {request.tags && request.tags.length > 0 && (
                       <div className="flex gap-1">
                         {request.tags.slice(0, 3).map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
+                          <Badge
+                            key={tag}
+                            variant="outline"
+                            className="text-xs"
+                          >
                             {tag}
                           </Badge>
                         ))}

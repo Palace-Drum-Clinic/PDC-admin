@@ -36,7 +36,7 @@ serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -51,7 +51,7 @@ serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -74,7 +74,9 @@ serve(async (req) => {
         throw updateError;
       }
 
-      console.log(`Incremented ${event_type} count for notification ${notification_id}`);
+      console.log(
+        `Incremented ${event_type} count for notification ${notification_id}`,
+      );
     } else {
       // Create new analytics event
       const { error: insertError } = await supabase
@@ -91,7 +93,9 @@ serve(async (req) => {
         throw insertError;
       }
 
-      console.log(`Created ${event_type} event for notification ${notification_id}`);
+      console.log(
+        `Created ${event_type} event for notification ${notification_id}`,
+      );
     }
 
     return new Response(
@@ -102,7 +106,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error) {
     console.error("Function error:", error);
@@ -117,7 +121,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });

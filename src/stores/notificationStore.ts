@@ -15,22 +15,29 @@ interface NotificationState {
   // Notifications
   fetchNotifications: () => Promise<void>;
   createNotification: (
-    input: ScheduledNotificationInput
+    input: ScheduledNotificationInput,
   ) => Promise<{ success: boolean; error?: string }>;
   updateNotification: (
     id: string,
-    input: Partial<ScheduledNotificationInput>
+    input: Partial<ScheduledNotificationInput>,
   ) => Promise<{ success: boolean; error?: string }>;
   deleteNotification: (
-    id: string
+    id: string,
   ) => Promise<{ success: boolean; error?: string }>;
   cancelNotification: (
-    id: string
+    id: string,
   ) => Promise<{ success: boolean; error?: string }>;
   sendInstantNotification: (input: {
     title: string;
     body: string;
-    audience_type: "all" | "all_users" | "registered_only" | "anonymous_only" | "admins" | "segment" | "users";
+    audience_type:
+      | "all"
+      | "all_users"
+      | "registered_only"
+      | "anonymous_only"
+      | "admins"
+      | "segment"
+      | "users";
   }) => Promise<{
     success: boolean;
     error?: string;
@@ -46,11 +53,11 @@ interface NotificationState {
   // Templates
   fetchTemplates: () => Promise<void>;
   createTemplate: (
-    input: NotificationTemplateInput
+    input: NotificationTemplateInput,
   ) => Promise<{ success: boolean; error?: string }>;
   updateTemplate: (
     id: string,
-    input: Partial<NotificationTemplateInput>
+    input: Partial<NotificationTemplateInput>,
   ) => Promise<{ success: boolean; error?: string }>;
   deleteTemplate: (id: string) => Promise<{ success: boolean; error?: string }>;
 
@@ -126,7 +133,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       set({
         notifications: get().notifications.map((n) =>
-          n.id === id ? (data as ScheduledNotification) : n
+          n.id === id ? (data as ScheduledNotification) : n,
         ),
       });
       return { success: true };
@@ -180,16 +187,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         input.audience_type === "all"
           ? { type: "all" }
           : input.audience_type === "all_users"
-          ? { type: "all_users" }
-          : input.audience_type === "registered_only"
-          ? { type: "registered_only" }
-          : input.audience_type === "anonymous_only"
-          ? { type: "anonymous_only" }
-          : input.audience_type === "admins"
-          ? { type: "admins" }
-          : input.audience_type === "segment"
-          ? { type: "segment", filter: {} }
-          : { type: "users", userIds: [] };
+            ? { type: "all_users" }
+            : input.audience_type === "registered_only"
+              ? { type: "registered_only" }
+              : input.audience_type === "anonymous_only"
+                ? { type: "anonymous_only" }
+                : input.audience_type === "admins"
+                  ? { type: "admins" }
+                  : input.audience_type === "segment"
+                    ? { type: "segment", filter: {} }
+                    : { type: "users", userIds: [] };
 
       // Save to database first (so it appears on dashboard)
       const { data: notification, error: dbError } = await supabase
@@ -219,8 +226,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const { error: functionError } = await supabase.functions.invoke(
         "process-notifications",
         {
-          body: { notification_id: (notification as ScheduledNotification).id },
-        }
+          body: { notification_id: notification.id },
+        },
       );
 
       if (functionError) {
@@ -298,7 +305,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       set({
         templates: get().templates.map((t) =>
-          t.id === id ? (data as NotificationTemplate) : t
+          t.id === id ? (data as NotificationTemplate) : t,
         ),
       });
       return { success: true };
@@ -340,7 +347,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     try {
       // Call the Edge Function to process all pending notifications
       const { error } = await supabase.functions.invoke(
-        "process-notifications"
+        "process-notifications",
       );
 
       if (error) throw error;

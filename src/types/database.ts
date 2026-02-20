@@ -756,7 +756,8 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-      };      feature_requests: {
+      };
+      feature_requests: {
         Row: {
           id: string;
           title: string;
@@ -936,7 +937,8 @@ export interface Database {
           notes?: string | null;
           created_at?: string;
         };
-      };      practice_logs: {
+      };
+      practice_logs: {
         Row: {
           id: string;
           user_id: string;
@@ -965,35 +967,6 @@ export interface Database {
           created_at?: string;
         };
       };
-      notification_throttle_settings: {
-        Row: {
-          id: string;
-          enabled: boolean;
-          max_notifications_per_day: number;
-          cooldown_hours_between_campaigns: number;
-          priority_override_threshold: number;
-          respect_user_preferences: boolean;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          enabled?: boolean;
-          max_notifications_per_day?: number;
-          cooldown_hours_between_campaigns?: number;
-          priority_override_threshold?: number;
-          respect_user_preferences?: boolean;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          enabled?: boolean;
-          max_notifications_per_day?: number;
-          cooldown_hours_between_campaigns?: number;
-          priority_override_threshold?: number;
-          respect_user_preferences?: boolean;
-          updated_at?: string;
-        };
-      };
     };
     Views: {
       admin_users: {
@@ -1012,58 +985,14 @@ export interface Database {
         Args: { user_id: string };
         Returns: boolean;
       };
-      find_video_abandoners: {
-        Args: {
-          watch_threshold: number;
-          hours_since: number;
-          video_id?: string | null;
-          series_id?: string | null;
-        };
-        Returns: Array<{
-          id: string;
-          authUserID: string;
-          firstName: string | null;
-          lastName: string | null;
-          pushToken: string | null;
-          notificationsEnabled: boolean | null;
-        }>;
-      };
-      find_broken_streaks: {
-        Args: {
-          min_streak: number;
-          days_since_break: number;
-        };
-        Returns: Array<{
-          id: string;
-          authUserID: string;
-          firstName: string | null;
-          lastName: string | null;
-          pushToken: string | null;
-          notificationsEnabled: boolean | null;
-        }>;
-      };
-      find_recent_milestones: {
-        Args: {
-          milestone_type: string;
-          threshold_value: number;
-          window_start: string;
-        };
-        Returns: Array<{
-          id: string;
-          authUserID: string;
-          firstName: string | null;
-          lastName: string | null;
-          pushToken: string | null;
-          notificationsEnabled: boolean | null;
-        }>;
-      };
     };
   };
 }
 
 // Convenience type exports
 export type AppUser = Database["public"]["Tables"]["AppUser"]["Row"];
-export type AnonymousUser = Database["public"]["Tables"]["AnonymousUser"]["Row"];
+export type AnonymousUser =
+  Database["public"]["Tables"]["AnonymousUser"]["Row"];
 export type ScheduledNotification =
   Database["public"]["Tables"]["scheduled_notifications"]["Row"];
 export type NotificationTemplate =
@@ -1100,8 +1029,6 @@ export type FeatureRequestSubscription =
   Database["public"]["Tables"]["feature_request_subscriptions"]["Row"];
 export type FeatureRequestAdminLog =
   Database["public"]["Tables"]["feature_request_admin_log"]["Row"];
-export type NotificationThrottleSettings =
-  Database["public"]["Tables"]["notification_throttle_settings"]["Row"];
 
 // Additional types for analytics and templates
 export interface NotificationPerformance {

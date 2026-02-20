@@ -371,3 +371,7 @@ export type FeatureRequestCommentInput = z.infer<
   typeof featureRequestCommentSchema
 >;
 export type FeatureRequestFilter = z.infer<typeof featureRequestFilterSchema>;
+export type FeatureRequestStatus = z.infer<typeof featureRequestStatusSchema>;
+export type FeatureRequestPriority = z.infer<
+  typeof featureRequestPrioritySchema
+>;

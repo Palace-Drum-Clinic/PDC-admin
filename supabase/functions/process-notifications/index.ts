@@ -44,7 +44,16 @@ serve(async (req) => {
         persistSession: false,
       },
     });
-    
+
+    // Debug: Test AnonymousUser table access
+    console.log("Testing AnonymousUser table access...");
+    const testQuery = await supabase.from("AnonymousUser").select("*").limit(5);
+    console.log("Test query result:", {
+      count: testQuery.data?.length,
+      error: testQuery.error,
+      sample: testQuery.data?.[0],
+    });
+
     // Check if a specific notification ID was provided
     const body = req.method === "POST" ? await req.json() : {};
     const specificNotificationId = body.notification_id;
@@ -62,7 +71,7 @@ serve(async (req) => {
     // If specific notification ID provided, only process that one
     if (specificNotificationId) {
       console.log(
-        `Processing specific notification: ${specificNotificationId}`
+        `Processing specific notification: ${specificNotificationId}`,
       );
       query = query.eq("id", specificNotificationId);
     } else {
@@ -84,21 +93,27 @@ serve(async (req) => {
     });
 
     if (!pendingNotifications || pendingNotifications.length === 0) {
-      console.log("No pending notifications found.");
+      console.log("No pending notifications found, checking triggers...");
+
+      // If no scheduled notifications, evaluate triggers
+      const triggerResult = await evaluateAndProcessTriggers(supabase, now);
+
       return new Response(
         JSON.stringify({
           success: true,
           processed: 0,
-          message: "No pending notifications to process",
+          triggers_processed: triggerResult.processed,
+          triggers_executed: triggerResult.executed,
+          message: `No scheduled notifications. Processed ${triggerResult.processed} triggers, executed ${triggerResult.executed}`,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
     console.log(
-      `Found ${pendingNotifications.length} notifications to process`
+      `Found ${pendingNotifications.length} notifications to process`,
     );
 
     let successCount = 0;
@@ -112,18 +127,18 @@ serve(async (req) => {
         // Get target users based on audience type
         const targetUsers = await getTargetUsers(
           supabase,
-          notification.target_audience
+          notification.target_audience,
         );
 
         if (targetUsers.length === 0) {
           console.log(
-            `No target users found for notification: ${notification.id}`
+            `No target users found for notification: ${notification.id}`,
           );
           await markNotificationAsCompleted(
             supabase,
             notification.id,
             "sent",
-            "No target users found"
+            "No target users found",
           );
           continue;
         }
@@ -133,27 +148,29 @@ serve(async (req) => {
           .filter((user) => user.pushToken && user.notificationsEnabled)
           .map((user) => user.pushToken)
           .filter(Boolean) as string[];
-        
+
         // Remove duplicates using Set
         const pushTokens = Array.from(new Set(allTokens));
-        
-        console.log(`Total tokens: ${allTokens.length}, Unique tokens: ${pushTokens.length}`);
+
+        console.log(
+          `Total tokens: ${allTokens.length}, Unique tokens: ${pushTokens.length}`,
+        );
 
         if (pushTokens.length === 0) {
           console.log(
-            `No valid push tokens for notification: ${notification.id}`
+            `No valid push tokens for notification: ${notification.id}`,
           );
           await markNotificationAsCompleted(
             supabase,
             notification.id,
             "sent",
-            "No valid push tokens"
+            "No valid push tokens",
           );
           continue;
         }
 
         console.log(
-          `Sending to ${pushTokens.length} devices for notification: ${notification.id}`
+          `Sending to ${pushTokens.length} devices for notification: ${notification.id}`,
         );
 
         // Send the push notification
@@ -172,10 +189,15 @@ serve(async (req) => {
 
         if (result.success) {
           await markNotificationAsCompleted(supabase, notification.id, "sent");
-          
+
           // Record analytics event for sent notification
-          await recordAnalyticsEvent(supabase, notification.id, "sent", pushTokens.length);
-          
+          await recordAnalyticsEvent(
+            supabase,
+            notification.id,
+            "sent",
+            pushTokens.length,
+          );
+
           successCount++;
           console.log(`Successfully sent notification: ${notification.id}`);
         } else {
@@ -183,30 +205,36 @@ serve(async (req) => {
             supabase,
             notification.id,
             "failed",
-            result.error
+            result.error,
           );
-          
+
           // Record analytics event for failed notification
-          await recordAnalyticsEvent(supabase, notification.id, "failed", pushTokens.length, {
-            error: result.error
-          });
-          
+          await recordAnalyticsEvent(
+            supabase,
+            notification.id,
+            "failed",
+            pushTokens.length,
+            {
+              error: result.error,
+            },
+          );
+
           errorCount++;
           console.error(
             `Failed to send notification ${notification.id}:`,
-            result.error
+            result.error,
           );
         }
       } catch (error) {
         console.error(
           `Error processing notification ${notification.id}:`,
-          error
+          error,
         );
         await markNotificationAsCompleted(
           supabase,
           notification.id,
           "failed",
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : "Unknown error",
         );
         errorCount++;
       }
@@ -238,7 +266,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
@@ -271,31 +299,31 @@ async function getTargetUsers(supabase: any, targetAudience: any) {
         .from("AppUser")
         .select("authUserID, pushToken, notificationsEnabled")
         .not("pushToken", "is", null);
-      
+
       const { data: anonUsers, error: anonError } = await supabase
         .from("AnonymousUser")
         .select("deviceId, pushToken, notificationsEnabled")
         .eq("notificationsEnabled", true)
         .not("pushToken", "is", null);
-      
+
       if (anonError) {
         console.error("Error fetching anonymous users:", anonError);
       }
-      
+
       console.log("Fetched registered users:", registeredUsers?.length || 0);
       console.log("Fetched anonymous users:", anonUsers?.length || 0);
-      
+
       // Combine both arrays, normalizing the structure
       const allRegistered = (registeredUsers || []).map((u: any) => ({
         pushToken: u.pushToken,
         notificationsEnabled: u.notificationsEnabled,
       }));
-      
+
       const allAnon = (anonUsers || []).map((u: any) => ({
         pushToken: u.pushToken,
         notificationsEnabled: u.notificationsEnabled,
       }));
-      
+
       return [...allRegistered, ...allAnon];
 
     case "registered_only": // New: only registered users
@@ -311,14 +339,14 @@ async function getTargetUsers(supabase: any, targetAudience: any) {
         .select("deviceId, pushToken, notificationsEnabled")
         .eq("notificationsEnabled", true)
         .not("pushToken", "is", null);
-      
+
       if (onlyAnonError) {
         console.error("Error fetching anonymous users:", onlyAnonError);
       }
-      
+
       console.log("Raw anonymous data:", JSON.stringify(onlyAnon));
       console.log("Fetched anonymous only users:", onlyAnon?.length || 0);
-      
+
       // Normalize structure to match expected format
       const mapped = (onlyAnon || []).map((u: any) => ({
         pushToken: u.pushToken,
@@ -364,7 +392,7 @@ async function markNotificationAsCompleted(
   supabase: any,
   notificationId: string,
   status: "sent" | "failed" | "cancelled",
-  errorMessage?: string
+  errorMessage?: string,
 ) {
   const updateData: any = {
     status,
@@ -386,7 +414,7 @@ async function markNotificationAsCompleted(
 }
 
 async function sendPushNotification(
-  payload: NotificationPayload
+  payload: NotificationPayload,
 ): Promise<PushNotificationResult> {
   try {
     // For development, we'll use Expo Push API
@@ -435,7 +463,7 @@ async function sendPushNotification(
     // Check for any errors in the response
     if (result.data) {
       const hasErrors = result.data.some(
-        (ticket: any) => ticket.status === "error"
+        (ticket: any) => ticket.status === "error",
       );
       if (hasErrors) {
         const errors = result.data
@@ -455,13 +483,243 @@ async function sendPushNotification(
   }
 }
 
+// Function to evaluate triggers and process them
+async function evaluateAndProcessTriggers(supabase: any, currentTime: string) {
+  console.log("Evaluating triggers...");
+
+  try {
+    // Fetch all active triggers
+    const { data: triggers, error: triggerError } = await supabase
+      .from("notification_triggers")
+      .select("*")
+      .eq("is_active", true);
+
+    if (triggerError) {
+      console.error("Error fetching triggers:", triggerError);
+      return { processed: 0, executed: 0, error: triggerError.message };
+    }
+
+    if (!triggers || triggers.length === 0) {
+      console.log("No active triggers found");
+      return { processed: 0, executed: 0 };
+    }
+
+    console.log(`Found ${triggers.length} active triggers`);
+
+    let totalExecuted = 0;
+
+    // Process each trigger
+    for (const trigger of triggers) {
+      try {
+        console.log(
+          `Processing trigger: ${trigger.name} (${trigger.trigger_type})`,
+        );
+
+        const executionResult = await evaluateTriggerConditions(
+          supabase,
+          trigger,
+          currentTime,
+        );
+
+        if (executionResult.matchingUsers > 0) {
+          console.log(
+            `Trigger ${trigger.name} matched ${executionResult.matchingUsers} users`,
+          );
+          totalExecuted += executionResult.matchingUsers;
+        }
+      } catch (error) {
+        console.error(`Error processing trigger ${trigger.name}:`, error);
+      }
+    }
+
+    return {
+      processed: triggers.length,
+      executed: totalExecuted,
+    };
+  } catch (error) {
+    console.error("Error in evaluateAndProcessTriggers:", error);
+    return { processed: 0, executed: 0, error: error.message };
+  }
+}
+
+// Function to evaluate specific trigger conditions
+async function evaluateTriggerConditions(
+  supabase: any,
+  trigger: any,
+  currentTime: string,
+) {
+  const conditionConfig =
+    typeof trigger.condition_config === "string"
+      ? JSON.parse(trigger.condition_config)
+      : trigger.condition_config;
+
+  console.log(
+    `Evaluating ${trigger.trigger_type} trigger with config:`,
+    conditionConfig,
+  );
+
+  let matchingUsers: any[] = [];
+
+  switch (trigger.trigger_type) {
+    case "user_inactive":
+      matchingUsers = await evaluateUserInactive(
+        supabase,
+        conditionConfig,
+        currentTime,
+      );
+      break;
+
+    case "signup_incomplete":
+      matchingUsers = await evaluateSignupIncomplete(
+        supabase,
+        conditionConfig,
+        currentTime,
+      );
+      break;
+
+    case "video_abandoned":
+      matchingUsers = await evaluateVideoAbandoned(
+        supabase,
+        conditionConfig,
+        currentTime,
+      );
+      break;
+
+    default:
+      console.log(`Trigger type ${trigger.trigger_type} not yet implemented`);
+      return { matchingUsers: 0 };
+  }
+
+  // Create trigger executions and send notifications
+  for (const user of matchingUsers) {
+    await createTriggerExecution(supabase, trigger.id, user, true);
+    // TODO: Create scheduled notification for this user
+  }
+
+  return { matchingUsers: matchingUsers.length };
+}
+
+// User inactive trigger evaluation
+async function evaluateUserInactive(
+  supabase: any,
+  config: any,
+  currentTime: string,
+) {
+  const daysAgo = new Date();
+  daysAgo.setDate(daysAgo.getDate() - (config.days_inactive || 3));
+
+  console.log(`Checking for users inactive since: ${daysAgo.toISOString()}`);
+
+  const { data: inactiveUsers } = await supabase
+    .from("AppUser")
+    .select("authUserID, firstName, pushToken, notificationsEnabled")
+    .lt("createdAt", daysAgo.toISOString());
+
+  // Filter users with push tokens and notifications enabled
+  return (inactiveUsers || []).filter(
+    (user: any) => user.pushToken && user.notificationsEnabled,
+  );
+}
+
+// Signup incomplete trigger evaluation
+async function evaluateSignupIncomplete(
+  supabase: any,
+  config: any,
+  currentTime: string,
+) {
+  const hoursAgo = new Date();
+  hoursAgo.setHours(hoursAgo.getHours() - (config.hours_since_signup || 24));
+
+  console.log(
+    `Checking for incomplete signups since: ${hoursAgo.toISOString()}`,
+  );
+
+  const { data: incompleteUsers } = await supabase
+    .from("AppUser")
+    .select("authUserID, firstName, lastName, pushToken, notificationsEnabled")
+    .gt("createdAt", hoursAgo.toISOString())
+    .or("firstName.is.null,lastName.is.null");
+
+  return (incompleteUsers || []).filter(
+    (user: any) => user.pushToken && user.notificationsEnabled,
+  );
+}
+
+// Video abandoned trigger evaluation
+async function evaluateVideoAbandoned(
+  supabase: any,
+  config: any,
+  currentTime: string,
+) {
+  const hoursAgo = new Date();
+  hoursAgo.setHours(
+    hoursAgo.getHours() - (config.hours_since_abandonment || 2),
+  );
+
+  console.log(`Checking for abandoned videos since: ${hoursAgo.toISOString()}`);
+
+  const watchThreshold = config.watch_percentage_threshold || 50;
+
+  const { data: abandonedViews } = await supabase
+    .from("VideoProgress")
+    .select(
+      `
+      "userID",
+      "videoID", 
+      progress,
+      "updatedAt",
+      Video!inner(duration, title)
+    `,
+    )
+    .lt("updatedAt", hoursAgo.toISOString());
+
+  // Filter for abandoned videos (watched some but not completed)
+  const abandonedUsers = (abandonedViews || []).filter((view: any) => {
+    const watchPercentage = (view.progress / view.Video.duration) * 100;
+    return watchPercentage >= 10 && watchPercentage <= watchThreshold;
+  });
+
+  // Get user details for push tokens
+  const userIDs = [...new Set(abandonedUsers.map((view: any) => view.userID))];
+
+  if (userIDs.length === 0) return [];
+
+  const { data: users } = await supabase
+    .from("AppUser")
+    .select("authUserID, pushToken, notificationsEnabled")
+    .in("authUserID", userIDs);
+
+  return (users || []).filter(
+    (user: any) => user.pushToken && user.notificationsEnabled,
+  );
+}
+
+// Create trigger execution record
+async function createTriggerExecution(
+  supabase: any,
+  triggerId: string,
+  user: any,
+  success: boolean,
+) {
+  const { error } = await supabase.from("trigger_executions").insert({
+    trigger_id: triggerId,
+    user_id: user.authUserID,
+    notification_sent: success,
+    condition_met_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    console.error("Error creating trigger execution:", error);
+  }
+}
+
 // Record analytics event for notifications
 async function recordAnalyticsEvent(
   supabase: any,
   notificationId: string,
   eventType: string,
   deviceCount: number,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ) {
   const { error } = await supabase.from("notification_analytics").insert({
     notification_id: notificationId,

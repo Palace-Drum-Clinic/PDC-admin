@@ -42,58 +42,6 @@ export interface Database {
           error_message: string | null;
         };
       };
-      notification_triggers: {
-        Row: {
-          id: string;
-          name: string;
-          description: string | null;
-          trigger_type: string;
-          condition_config: any;
-          template_id: string | null;
-          title: string;
-          body: string;
-          target_audience: any;
-          is_active: boolean;
-          priority: number;
-          created_at: string;
-          updated_at: string;
-          created_by: string | null;
-        };
-      };
-      trigger_executions: {
-        Row: {
-          id: string;
-          trigger_id: string;
-          user_id: string;
-          executed_at: string;
-          notification_id: string | null;
-          success: boolean;
-          error_message: string | null;
-          condition_values: any;
-        };
-      };
-      user_notification_history: {
-        Row: {
-          id: string;
-          user_id: string;
-          notification_id: string;
-          trigger_id: string | null;
-          sent_at: string;
-          category: string;
-          throttle_key: string | null;
-        };
-      };
-      notification_throttle_settings: {
-        Row: {
-          id: string;
-          enabled: boolean;
-          max_notifications_per_day: number;
-          cooldown_hours_between_campaigns: number;
-          priority_override_threshold: number;
-          respect_user_preferences: boolean;
-          updated_at: string;
-        };
-      };
     };
   };
 }

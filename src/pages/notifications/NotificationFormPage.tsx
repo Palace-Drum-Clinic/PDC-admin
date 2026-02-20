@@ -33,7 +33,15 @@ const formSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title too long"),
   body: z.string().min(1, "Body is required").max(500, "Body too long"),
   scheduled_for: z.string().optional(),
-  audience_type: z.enum(["all", "all_users", "registered_only", "anonymous_only", "admins", "segment", "users"]),
+  audience_type: z.enum([
+    "all",
+    "all_users",
+    "registered_only",
+    "anonymous_only",
+    "admins",
+    "segment",
+    "users",
+  ]),
   send_immediately: z.boolean(),
 });
 
@@ -137,7 +145,7 @@ export function NotificationFormPage() {
       const regex = new RegExp(`{${variable}}`, "g");
       result = result.replace(
         regex,
-        exampleValues[variable] || `{${variable}}`
+        exampleValues[variable] || `{${variable}}`,
       );
     });
 
@@ -157,14 +165,14 @@ export function NotificationFormPage() {
 
         if (!result.success) {
           throw new Error(
-            result.error || "Failed to send instant notification"
+            result.error || "Failed to send instant notification",
           );
         }
       } else {
         // Schedule notification
         if (!data.scheduled_for) {
           throw new Error(
-            "Schedule time is required for scheduled notifications"
+            "Schedule time is required for scheduled notifications",
           );
         }
 
@@ -174,7 +182,7 @@ export function NotificationFormPage() {
 
         if (scheduledDate < minDate) {
           throw new Error(
-            "Scheduled time must be at least 30 seconds in the future"
+            "Scheduled time must be at least 30 seconds in the future",
           );
         }
 
@@ -183,16 +191,16 @@ export function NotificationFormPage() {
           data.audience_type === "all"
             ? { type: "all" }
             : data.audience_type === "all_users"
-            ? { type: "all_users" }
-            : data.audience_type === "registered_only"
-            ? { type: "registered_only" }
-            : data.audience_type === "anonymous_only"
-            ? { type: "anonymous_only" }
-            : data.audience_type === "admins"
-            ? { type: "admins" }
-            : data.audience_type === "segment"
-            ? { type: "segment", filter: {} }
-            : { type: "users", userIds: [] };
+              ? { type: "all_users" }
+              : data.audience_type === "registered_only"
+                ? { type: "registered_only" }
+                : data.audience_type === "anonymous_only"
+                  ? { type: "anonymous_only" }
+                  : data.audience_type === "admins"
+                    ? { type: "admins" }
+                    : data.audience_type === "segment"
+                      ? { type: "segment", filter: {} }
+                      : { type: "users", userIds: [] };
 
         const notificationData: ScheduledNotificationInput = {
           title: data.title,
@@ -448,7 +456,9 @@ export function NotificationFormPage() {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="all_users">All Users (Registered + Anon)</option>
-                <option value="registered_only">Registered Users (Non-Anon)</option>
+                <option value="registered_only">
+                  Registered Users (Non-Anon)
+                </option>
                 <option value="anonymous_only">Anon Users Only</option>
                 <option value="all">All Registered Users (Legacy)</option>
                 <option value="admins">Admins Only</option>
@@ -461,7 +471,8 @@ export function NotificationFormPage() {
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
-                Choose who should receive this notification. Anon users are app users who haven't signed up yet.
+                Choose who should receive this notification. Anon users are app
+                users who haven't signed up yet.
               </p>
             </div>
           </CardContent>

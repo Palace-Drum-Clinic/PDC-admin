@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Bell, Users, Send, CheckCircle2, XCircle, Eye, MousePointerClick, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  Bell,
+  Users,
+  Send,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  MousePointerClick,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
 import { useNotificationStore, useNotificationAnalyticsStore } from "@/stores";
 import {
   Button,
@@ -17,17 +28,42 @@ import { formatDateTime } from "@/lib/utils";
 import type { ScheduledNotification, TargetAudience } from "@/types";
 
 const statusConfig = {
-  pending: { label: "Pending", variant: "secondary" as const, icon: AlertCircle, color: "text-gray-500" },
-  sent: { label: "Sent", variant: "success" as const, icon: CheckCircle2, color: "text-green-500" },
-  failed: { label: "Failed", variant: "destructive" as const, icon: XCircle, color: "text-red-500" },
-  cancelled: { label: "Cancelled", variant: "outline" as const, icon: XCircle, color: "text-gray-400" },
+  pending: {
+    label: "Pending",
+    variant: "secondary" as const,
+    icon: AlertCircle,
+    color: "text-gray-500",
+  },
+  sent: {
+    label: "Sent",
+    variant: "success" as const,
+    icon: CheckCircle2,
+    color: "text-green-500",
+  },
+  failed: {
+    label: "Failed",
+    variant: "destructive" as const,
+    icon: XCircle,
+    color: "text-red-500",
+  },
+  cancelled: {
+    label: "Cancelled",
+    variant: "outline" as const,
+    icon: XCircle,
+    color: "text-gray-400",
+  },
 };
 
 export function NotificationDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { notifications, fetchNotifications, isLoading: notificationLoading } = useNotificationStore();
+  const {
+    notifications,
+    fetchNotifications,
+    isLoading: notificationLoading,
+  } = useNotificationStore();
   const { analytics, fetchAnalyticsEvents } = useNotificationAnalyticsStore();
-  const [notification, setNotification] = useState<ScheduledNotification | null>(null);
+  const [notification, setNotification] =
+    useState<ScheduledNotification | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -88,28 +124,35 @@ export function NotificationDetailPage() {
   const totalDismissed = dismissedEvent?.device_count || 0;
   const totalFailed = failedEvent?.device_count || 0;
 
-  const deliveryRate = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
-  const openRate = totalDelivered > 0 ? Math.round((totalOpened / totalDelivered) * 100) : 0;
-  const clickRate = totalOpened > 0 ? Math.round((totalClicked / totalOpened) * 100) : 0;
-  const dismissRate = totalDelivered > 0 ? Math.round((totalDismissed / totalDelivered) * 100) : 0;
+  const deliveryRate =
+    totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
+  const openRate =
+    totalDelivered > 0 ? Math.round((totalOpened / totalDelivered) * 100) : 0;
+  const clickRate =
+    totalOpened > 0 ? Math.round((totalClicked / totalOpened) * 100) : 0;
+  const dismissRate =
+    totalDelivered > 0
+      ? Math.round((totalDismissed / totalDelivered) * 100)
+      : 0;
 
   // Parse target audience
   const targetAudience = notification.target_audience as TargetAudience;
-  const audienceLabel = targetAudience?.type === "all"
-    ? "All Registered Users"
-    : targetAudience?.type === "all_users"
-    ? "All Users (Registered + Anon)"
-    : targetAudience?.type === "registered_only"
-    ? "Registered Users Only"
-    : targetAudience?.type === "anonymous_only"
-    ? "Anonymous Users Only"
-    : targetAudience?.type === "admins"
-    ? "Admins Only"
-    : targetAudience?.type === "segment"
-    ? "Custom Segment"
-    : targetAudience?.type === "users"
-    ? `${targetAudience.userIds?.length || 0} Specific Users`
-    : "Unknown";
+  const audienceLabel =
+    targetAudience?.type === "all"
+      ? "All Registered Users"
+      : targetAudience?.type === "all_users"
+        ? "All Users (Registered + Anon)"
+        : targetAudience?.type === "registered_only"
+          ? "Registered Users Only"
+          : targetAudience?.type === "anonymous_only"
+            ? "Anonymous Users Only"
+            : targetAudience?.type === "admins"
+              ? "Admins Only"
+              : targetAudience?.type === "segment"
+                ? "Custom Segment"
+                : targetAudience?.type === "users"
+                  ? `${targetAudience.userIds?.length || 0} Specific Users`
+                  : "Unknown";
 
   const statusInfo = statusConfig[notification.status];
   const StatusIcon = statusInfo.icon;
@@ -136,7 +179,9 @@ export function NotificationDetailPage() {
           </div>
         </div>
         <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+          />
           Refresh
         </Button>
       </div>
@@ -204,7 +249,9 @@ export function NotificationDetailPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Sent</p>
-                    <p className="text-3xl font-bold mt-2">{totalSent.toLocaleString()}</p>
+                    <p className="text-3xl font-bold mt-2">
+                      {totalSent.toLocaleString()}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Push notifications sent
                     </p>
@@ -222,7 +269,9 @@ export function NotificationDetailPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Delivered</p>
-                    <p className="text-3xl font-bold mt-2">{totalDelivered.toLocaleString()}</p>
+                    <p className="text-3xl font-bold mt-2">
+                      {totalDelivered.toLocaleString()}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {deliveryRate}% delivery rate
                     </p>
@@ -240,7 +289,9 @@ export function NotificationDetailPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Opened</p>
-                    <p className="text-3xl font-bold mt-2">{totalOpened.toLocaleString()}</p>
+                    <p className="text-3xl font-bold mt-2">
+                      {totalOpened.toLocaleString()}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {openRate}% open rate
                     </p>
@@ -258,7 +309,9 @@ export function NotificationDetailPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Clicked</p>
-                    <p className="text-3xl font-bold mt-2">{totalClicked.toLocaleString()}</p>
+                    <p className="text-3xl font-bold mt-2">
+                      {totalClicked.toLocaleString()}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {clickRate}% click rate
                     </p>
@@ -291,8 +344,13 @@ export function NotificationDetailPage() {
                     </p>
                   </div>
                   <div className="text-sm text-muted-foreground max-w-md">
-                    <p>Users who swiped away the notification without opening it.</p>
-                    <p className="mt-1 text-xs">Note: Dismiss tracking only works on iOS with configured notification categories.</p>
+                    <p>
+                      Users who swiped away the notification without opening it.
+                    </p>
+                    <p className="mt-1 text-xs">
+                      Note: Dismiss tracking only works on iOS with configured
+                      notification categories.
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -359,8 +417,8 @@ export function NotificationDetailPage() {
                     {deliveryRate >= 95
                       ? "Excellent delivery rate!"
                       : deliveryRate >= 85
-                      ? "Good delivery rate"
-                      : "Delivery rate could be improved"}
+                        ? "Good delivery rate"
+                        : "Delivery rate could be improved"}
                   </p>
                 </div>
 
@@ -380,10 +438,10 @@ export function NotificationDetailPage() {
                     {openRate >= 20
                       ? "Great engagement!"
                       : openRate >= 10
-                      ? "Average engagement"
-                      : openRate > 0
-                      ? "Low engagement - consider improving your message"
-                      : "No opens yet - data may still be processing"}
+                        ? "Average engagement"
+                        : openRate > 0
+                          ? "Low engagement - consider improving your message"
+                          : "No opens yet - data may still be processing"}
                   </p>
                 </div>
 
@@ -404,8 +462,8 @@ export function NotificationDetailPage() {
                       {clickRate >= 50
                         ? "Outstanding click-through rate!"
                         : clickRate >= 25
-                        ? "Good click-through rate"
-                        : "Consider adding a stronger call-to-action"}
+                          ? "Good click-through rate"
+                          : "Consider adding a stronger call-to-action"}
                     </p>
                   </div>
                 )}
@@ -432,7 +490,8 @@ export function NotificationDetailPage() {
                       <div className="flex items-center gap-3">
                         <Badge variant="outline">{event.event_type}</Badge>
                         <span className="text-sm">
-                          {event.device_count} device{event.device_count !== 1 ? "s" : ""}
+                          {event.device_count} device
+                          {event.device_count !== 1 ? "s" : ""}
                         </span>
                       </div>
                       <span className="text-sm text-muted-foreground">
@@ -454,8 +513,8 @@ export function NotificationDetailPage() {
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No Analytics Data Yet</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Analytics data is still being collected. This can take a few minutes after sending.
-              Try refreshing this page in a moment.
+              Analytics data is still being collected. This can take a few
+              minutes after sending. Try refreshing this page in a moment.
             </p>
           </CardContent>
         </Card>
@@ -470,15 +529,15 @@ export function NotificationDetailPage() {
               {notification.status === "pending"
                 ? "Notification Not Sent Yet"
                 : notification.status === "cancelled"
-                ? "Notification Cancelled"
-                : "Notification Failed"}
+                  ? "Notification Cancelled"
+                  : "Notification Failed"}
             </h3>
             <p className="text-muted-foreground max-w-md mx-auto">
               {notification.status === "pending"
                 ? "Analytics will be available once this notification has been sent."
                 : notification.status === "cancelled"
-                ? "This notification was cancelled before sending."
-                : "This notification failed to send. Check the error message above."}
+                  ? "This notification was cancelled before sending."
+                  : "This notification failed to send. Check the error message above."}
             </p>
           </CardContent>
         </Card>

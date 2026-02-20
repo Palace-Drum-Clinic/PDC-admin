@@ -10,7 +10,11 @@ export { GoalsPage } from "./GoalsPage";
 export { BookingsPage } from "./BookingsPage";
 
 // Notifications
-export { NotificationsListPage, NotificationFormPage, NotificationDetailPage } from "./notifications";
+export {
+  NotificationsListPage,
+  NotificationFormPage,
+  NotificationDetailPage,
+} from "./notifications";
 
 // Content
 export {

@@ -110,8 +110,14 @@ function App() {
           <Route path="bookings/rooms/:id/edit" element={<RoomFormPage />} />
 
           {/* Feature Requests */}
-          <Route path="feature-requests" element={<FeatureRequestsListPage />} />
-          <Route path="feature-requests/:id" element={<FeatureRequestDetailPage />} />
+          <Route
+            path="feature-requests"
+            element={<FeatureRequestsListPage />}
+          />
+          <Route
+            path="feature-requests/:id"
+            element={<FeatureRequestDetailPage />}
+          />
         </Route>
 
         {/* Catch all redirect */}

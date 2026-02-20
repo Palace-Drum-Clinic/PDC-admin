@@ -62,13 +62,17 @@ export function FeatureRequestDetailPage() {
   const {
     selectedRequest,
     comments,
+    votes,
     adminLogs,
     isLoading,
     error,
     fetchRequestById,
     fetchComments,
+    fetchVotes,
     fetchAdminLogs,
     updateRequest,
+    updateStatus,
+    updatePriority,
     addComment,
     archiveRequest,
     unarchiveRequest,
@@ -95,16 +99,17 @@ export function FeatureRequestDetailPage() {
     formState: { errors: commentErrors },
     reset: resetComment,
   } = useForm<FeatureRequestCommentInput>({
-    resolver: zodResolver(featureRequestCommentSchema) as any,
+    resolver: zodResolver(featureRequestCommentSchema),
   });
 
   useEffect(() => {
     if (id) {
       fetchRequestById(id);
       fetchComments(id);
+      fetchVotes(id);
       fetchAdminLogs(id);
     }
-  }, [id, fetchRequestById, fetchComments, fetchAdminLogs]);
+  }, [id, fetchRequestById, fetchComments, fetchVotes, fetchAdminLogs]);
 
   useEffect(() => {
     if (selectedRequest) {
@@ -150,6 +155,28 @@ export function FeatureRequestDetailPage() {
     }
   };
 
+  const handleStatusChange = async (status: string) => {
+    if (!id) return;
+
+    const result = await updateStatus(id, status as never);
+    if (result.success) {
+      setSuccessMessage("Status updated successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      fetchAdminLogs(id);
+    }
+  };
+
+  const handlePriorityChange = async (priority: string) => {
+    if (!id) return;
+
+    const result = await updatePriority(id, priority as never);
+    if (result.success) {
+      setSuccessMessage("Priority updated successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      fetchAdminLogs(id);
+    }
+  };
+
   const handleArchive = async () => {
     if (!id || !archiveReason) return;
 
@@ -176,13 +203,12 @@ export function FeatureRequestDetailPage() {
 
   const handleDelete = async () => {
     if (!id) return;
-    if (!confirm("Are you sure you want to delete this feature request?")) return;
+    if (!confirm("Are you sure you want to delete this feature request?"))
+      return;
 
     const result = await deleteRequest(id);
     if (result.success) {
       navigate("/feature-requests");
-    } else {
-      alert(`Failed to delete: ${result.error}`);
     }
   };
 
@@ -205,9 +231,7 @@ export function FeatureRequestDetailPage() {
   }
 
   if (!selectedRequest) {
-    return (
-      <Alert variant="destructive">Feature request not found</Alert>
-    );
+    return <Alert variant="destructive">Feature request not found</Alert>;
   }
 
   return (
@@ -215,7 +239,10 @@ export function FeatureRequestDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate("/feature-requests")}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/feature-requests")}
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
@@ -299,8 +326,8 @@ export function FeatureRequestDetailPage() {
                   <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                     <User className="w-4 h-4" />
                     <span>
-                      {(selectedRequest as any).created_by_user?.firstName}{" "}
-                      {(selectedRequest as any).created_by_user?.lastName}
+                      {selectedRequest.created_by_user?.firstName}{" "}
+                      {selectedRequest.created_by_user?.lastName}
                     </span>
                     <span>•</span>
                     <Calendar className="w-4 h-4" />
@@ -358,7 +385,9 @@ export function FeatureRequestDetailPage() {
                   <span className="text-lg font-semibold">
                     {selectedRequest.comment_count}
                   </span>
-                  <span className="text-sm text-muted-foreground">comments</span>
+                  <span className="text-sm text-muted-foreground">
+                    comments
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -484,7 +513,7 @@ export function FeatureRequestDetailPage() {
             <CardContent className="space-y-4">
               {/* Add Comment Form */}
               <form
-                onSubmit={handleCommentSubmit(onCommentSubmit as any)}
+                onSubmit={handleCommentSubmit(onCommentSubmit)}
                 className="space-y-4"
               >
                 <div>
@@ -522,8 +551,8 @@ export function FeatureRequestDetailPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm">
-                            {(comment as any).user?.firstName}{" "}
-                            {(comment as any).user?.lastName}
+                            {(comment as never)["user"]?.firstName}{" "}
+                            {(comment as never)["user"]?.lastName}
                           </span>
                           {comment.is_admin_comment && (
                             <Badge variant="outline" className="text-xs">
@@ -578,8 +607,8 @@ export function FeatureRequestDetailPage() {
                         </span>
                       </div>
                       <p className="text-sm font-semibold">
-                        {(log as any).admin?.firstName}{" "}
-                        {(log as any).admin?.lastName}
+                        {(log as never)["admin"]?.firstName}{" "}
+                        {(log as never)["admin"]?.lastName}
                       </p>
                       {log.notes && (
                         <p className="text-sm text-muted-foreground mt-1">
