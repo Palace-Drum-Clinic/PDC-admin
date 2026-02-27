@@ -335,7 +335,7 @@ export const useFeatureRequestStore = create<FeatureRequestState>(
         // Update comment count
         await supabase.rpc("increment_feature_request_comment_count", {
           request_id: requestId,
-        });
+        } as never);
 
         set({ comments: [...get().comments, data as FeatureRequestComment] });
 

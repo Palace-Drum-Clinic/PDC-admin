@@ -7,7 +7,6 @@ import type {
   UserNotificationHistory,
   NotificationTriggerInput,
   ThrottleSettings,
-  NotificationThrottleSettings,
 } from "@/types";
 
 interface TriggerState {
@@ -303,7 +302,7 @@ export const useTriggerStore = create<TriggerState>()(
             .select("*")
             .limit(1)
             .single() as unknown as {
-              data: NotificationThrottleSettings | null;
+              data: (ThrottleSettings & { id: string }) | null;
               error: Error | null;
             };
 
@@ -336,7 +335,7 @@ export const useTriggerStore = create<TriggerState>()(
             .select("id")
             .limit(1)
             .single() as unknown as {
-              data: Pick<NotificationThrottleSettings, "id"> | null;
+              data: { id: string } | null;
               error: Error | null;
             };
 

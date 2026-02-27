@@ -226,7 +226,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const { error: functionError } = await supabase.functions.invoke(
         "process-notifications",
         {
-          body: { notification_id: notification.id },
+          body: { notification_id: (notification as ScheduledNotification).id },
         },
       );
 

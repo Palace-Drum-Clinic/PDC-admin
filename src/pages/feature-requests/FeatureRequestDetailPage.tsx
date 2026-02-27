@@ -62,7 +62,6 @@ export function FeatureRequestDetailPage() {
   const {
     selectedRequest,
     comments,
-    votes,
     adminLogs,
     isLoading,
     error,
@@ -71,8 +70,6 @@ export function FeatureRequestDetailPage() {
     fetchVotes,
     fetchAdminLogs,
     updateRequest,
-    updateStatus,
-    updatePriority,
     addComment,
     archiveRequest,
     unarchiveRequest,
@@ -99,7 +96,7 @@ export function FeatureRequestDetailPage() {
     formState: { errors: commentErrors },
     reset: resetComment,
   } = useForm<FeatureRequestCommentInput>({
-    resolver: zodResolver(featureRequestCommentSchema),
+    resolver: zodResolver(featureRequestCommentSchema) as never,
   });
 
   useEffect(() => {
@@ -152,28 +149,6 @@ export function FeatureRequestDetailPage() {
       if (selectedRequest) {
         fetchRequestById(id);
       }
-    }
-  };
-
-  const handleStatusChange = async (status: string) => {
-    if (!id) return;
-
-    const result = await updateStatus(id, status as never);
-    if (result.success) {
-      setSuccessMessage("Status updated successfully!");
-      setTimeout(() => setSuccessMessage(""), 3000);
-      fetchAdminLogs(id);
-    }
-  };
-
-  const handlePriorityChange = async (priority: string) => {
-    if (!id) return;
-
-    const result = await updatePriority(id, priority as never);
-    if (result.success) {
-      setSuccessMessage("Priority updated successfully!");
-      setTimeout(() => setSuccessMessage(""), 3000);
-      fetchAdminLogs(id);
     }
   };
 
@@ -326,8 +301,7 @@ export function FeatureRequestDetailPage() {
                   <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                     <User className="w-4 h-4" />
                     <span>
-                      {selectedRequest.created_by_user?.firstName}{" "}
-                      {selectedRequest.created_by_user?.lastName}
+                      {selectedRequest.created_by}
                     </span>
                     <span>•</span>
                     <Calendar className="w-4 h-4" />
@@ -551,8 +525,8 @@ export function FeatureRequestDetailPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm">
-                            {(comment as never)["user"]?.firstName}{" "}
-                            {(comment as never)["user"]?.lastName}
+                            {(comment as any).user?.firstName}{" "}
+                            {(comment as any).user?.lastName}
                           </span>
                           {comment.is_admin_comment && (
                             <Badge variant="outline" className="text-xs">
@@ -607,8 +581,8 @@ export function FeatureRequestDetailPage() {
                         </span>
                       </div>
                       <p className="text-sm font-semibold">
-                        {(log as never)["admin"]?.firstName}{" "}
-                        {(log as never)["admin"]?.lastName}
+                        {(log as any).admin?.firstName}{" "}
+                        {(log as any).admin?.lastName}
                       </p>
                       {log.notes && (
                         <p className="text-sm text-muted-foreground mt-1">
