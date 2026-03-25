@@ -16,7 +16,9 @@ import {
   NotificationDetailPage,
   ContentListPage,
   VideoFormPage,
-  SeriesFormPage,
+  CourseFormPage,
+  CourseUploadPage,
+  S3CleanupPage,
   ArtistFormPage,
   GoalFormPage,
   SiteFormPage,
@@ -29,13 +31,13 @@ import {
 } from "@/pages/feature-requests";
 
 function App() {
-  const { initialize, isLoading } = useAuthStore();
+  const { initialize, isInitializing } = useAuthStore();
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  if (isLoading) {
+  if (isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -86,8 +88,10 @@ function App() {
           <Route path="content" element={<ContentListPage />} />
           <Route path="content/videos/new" element={<VideoFormPage />} />
           <Route path="content/videos/:id/edit" element={<VideoFormPage />} />
-          <Route path="content/series/new" element={<SeriesFormPage />} />
-          <Route path="content/series/:id/edit" element={<SeriesFormPage />} />
+          <Route path="content/courses/new" element={<CourseFormPage />} />
+          <Route path="content/courses/:id/edit" element={<CourseFormPage />} />
+          <Route path="content/courses/upload" element={<CourseUploadPage />} />
+          <Route path="content/s3" element={<S3CleanupPage />} />
           <Route path="content/artists/new" element={<ArtistFormPage />} />
           <Route path="content/artists/:id/edit" element={<ArtistFormPage />} />
 

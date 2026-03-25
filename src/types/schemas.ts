@@ -160,17 +160,9 @@ export const throttleSettingsSchema = z.object({
 export const videoSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  video_url: z.string().url("Must be a valid URL"),
-  thumbnail_url: z.string().url().optional().or(z.literal("")),
-  duration_seconds: z.number().int().positive().optional(),
-  series_id: z.string().uuid().optional().nullable(),
-  artist_id: z.string().uuid().optional().nullable(),
+  artist_id: z.string().min(1, "Artist is required"),
   difficulty_level: difficultyLevelSchema.optional().nullable(),
-  tags: z.array(z.string()),
-  pdf_url: z.string().url().optional().or(z.literal("")),
-  is_published: z.boolean(),
   is_free: z.boolean(),
-  display_order: z.number().int(),
 });
 
 export const videoSeriesSchema = z.object({
@@ -187,10 +179,7 @@ export const videoSeriesSchema = z.object({
 export const artistSchema = z.object({
   name: z.string().min(1, "Name is required"),
   bio: z.string().optional(),
-  profile_image_url: z.string().url().optional().or(z.literal("")),
-  website_url: z.string().url().optional().or(z.literal("")),
-  instagram_handle: z.string().optional(),
-  is_active: z.boolean(),
+  profileImageURL: z.string().url().optional().or(z.literal("")),
 });
 
 // Goal schemas

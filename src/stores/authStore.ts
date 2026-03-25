@@ -10,6 +10,7 @@ interface AuthState {
   appUser: AppUser | null;
   isAdmin: boolean;
   isLoading: boolean;
+  isInitializing: boolean;
   error: string | null;
 
   // Actions
@@ -30,12 +31,13 @@ export const useAuthStore = create<AuthState>()(
       session: null,
       appUser: null,
       isAdmin: false,
-      isLoading: true,
+      isLoading: false,
+      isInitializing: true,
       error: null,
 
       initialize: async () => {
         try {
-          set({ isLoading: true, error: null });
+          set({ isInitializing: true, error: null });
 
           // Get current session
           const {
@@ -72,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
                 : "Failed to initialize auth",
           });
         } finally {
-          set({ isLoading: false });
+          set({ isInitializing: false });
         }
       },
 

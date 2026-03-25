@@ -11,6 +11,7 @@ import {
   LogOut,
   Drum,
   Lightbulb,
+  HardDrive,
 } from "lucide-react";
 import { useAuthStore } from "@/stores";
 import { Button } from "@/components/ui";
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Goals", href: "/goals", icon: Target },
   { name: "Drum Zone", href: "/bookings", icon: Calendar },
   { name: "Feature Requests", href: "/feature-requests", icon: Lightbulb },
+  { name: "S3 Storage", href: "/content/s3", icon: HardDrive },
 ];
 
 export function Sidebar() {

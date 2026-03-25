@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, User, Save } from "lucide-react";
+import { ArrowLeft, User, Save, Upload, X, Image } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useDropzone } from "react-dropzone";
 import { useContentStore } from "@/stores";
 import { artistSchema, type ArtistInput } from "@/types/schemas";
+import { uploadToS3 } from "@/lib/s3";
 import {
   Button,
   Input,
@@ -34,24 +36,30 @@ export function ArtistFormPage() {
     updateArtist,
     fetchArtists,
   } = useContentStore();
+
   const [isSaving, setIsSaving] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ArtistInput>({
     resolver: zodResolver(artistSchema),
     defaultValues: {
       name: "",
       bio: "",
-      profile_image_url: "",
-      website_url: "",
-      instagram_handle: "",
-      is_active: true,
+      profileImageURL: "",
     },
   });
+
+  const currentImageUrl = watch("profileImageURL");
 
   useEffect(() => {
     if (isEditing) {
@@ -61,31 +69,65 @@ export function ArtistFormPage() {
 
   useEffect(() => {
     if (isEditing && artists.length > 0) {
-      const item = artists.find((a) => a.id === id);
+      const item = artists.find((a) => a.id === id) as
+        | (typeof artists)[0] & { profileImageURL?: string | null }
+        | undefined;
       if (item) {
         reset({
           name: item.name,
           bio: item.bio || "",
-          profile_image_url: item.profile_image_url || "",
-          website_url: item.website_url || "",
-          instagram_handle: item.instagram_handle || "",
-          is_active: item.is_active,
+          profileImageURL: item.profileImageURL || "",
         });
+        if (item.profileImageURL) {
+          setImagePreview(item.profileImageURL);
+        }
       }
     }
   }, [isEditing, id, artists, reset]);
 
+  const onDrop = useCallback((accepted: File[]) => {
+    const file = accepted[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { "image/*": [".jpg", ".jpeg", ".png", ".webp"] },
+    maxFiles: 1,
+  });
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setValue("profileImageURL", "");
+  };
+
   const onSubmit = async (data: ArtistInput) => {
     setIsSaving(true);
     try {
+      let finalImageUrl = data.profileImageURL;
+
+      if (imageFile) {
+        setIsUploading(true);
+        finalImageUrl = await uploadToS3(imageFile, "artists/images", (p) => {
+          setUploadProgress(p);
+        });
+        setIsUploading(false);
+      }
+
+      const payload = { ...data, profileImageURL: finalImageUrl };
+
       if (isEditing && id) {
-        await updateArtist(id, data);
+        await updateArtist(id, payload);
       } else {
-        await createArtist(data);
+        await createArtist(payload);
       }
       navigate("/content");
     } finally {
       setIsSaving(false);
+      setIsUploading(false);
     }
   };
 
@@ -146,32 +188,74 @@ export function ArtistFormPage() {
               />
             </div>
 
+            {/* Profile Image Upload */}
             <div className="space-y-2">
-              <Label htmlFor="profile_image_url">Profile Image URL</Label>
-              <Input
-                id="profile_image_url"
-                placeholder="https://..."
-                {...register("profile_image_url")}
-              />
+              <Label>Profile Image</Label>
+              {imagePreview ? (
+                <div className="relative w-40 h-40">
+                  <img
+                    src={imagePreview}
+                    alt="Profile preview"
+                    className="w-40 h-40 rounded-lg object-cover border"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute -top-2 -right-2 rounded-full bg-destructive text-destructive-foreground p-1"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  {imageFile && (
+                    <p className="mt-1 text-xs text-muted-foreground truncate w-40">
+                      {imageFile.name}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div
+                  {...getRootProps()}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                    isDragActive
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25 hover:border-primary/50"
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  <Image className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    {isDragActive
+                      ? "Drop image here"
+                      : "Drag & drop or click to upload"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    JPG, PNG, WebP
+                  </p>
+                </div>
+              )}
+              {isUploading && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Uploading to S3...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-1.5">
+                    <div
+                      className="bg-primary h-1.5 rounded-full transition-all"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {/* Hidden field to carry existing URL when not replacing */}
+              <input type="hidden" {...register("profileImageURL")} />
+              {!imageFile && currentImageUrl && (
+                <p className="text-xs text-muted-foreground">
+                  Current image will be kept
+                </p>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="website_url">Website URL</Label>
-              <Input
-                id="website_url"
-                placeholder="https://..."
-                {...register("website_url")}
-              />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="instagram_handle">Instagram Handle</Label>
-              <Input
-                id="instagram_handle"
-                placeholder="@drummersmith"
-                {...register("instagram_handle")}
-              />
-            </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
             <Button
@@ -181,13 +265,18 @@ export function ArtistFormPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSaving}>
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving
-                ? "Saving..."
-                : isEditing
-                ? "Save Changes"
-                : "Add Artist"}
+            <Button type="submit" disabled={isSaving || isUploading}>
+              {isUploading ? (
+                <>
+                  <Upload className="h-4 w-4 mr-2 animate-bounce" />
+                  Uploading... {uploadProgress}%
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {isSaving ? "Saving..." : isEditing ? "Save Changes" : "Add Artist"}
+                </>
+              )}
             </Button>
           </CardFooter>
         </Card>

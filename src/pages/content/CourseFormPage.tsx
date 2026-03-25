@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Layers, Save } from "lucide-react";
+import { ArrowLeft, BookOpen, Save } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useContentStore } from "@/stores";
-import { videoSeriesSchema, type VideoSeriesInput } from "@/types/schemas";
+import type { CourseInput } from "@/stores/contentStore";
 import {
   Button,
   Input,
@@ -21,12 +20,12 @@ import {
   LoadingState,
 } from "@/components/ui";
 
-export function SeriesFormPage() {
+export function CourseFormPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
 
-  const { series, isLoading, error, createSeries, updateSeries, fetchSeries } =
+  const { courses, isLoading, error, createCourse, updateCourse, fetchCourses } =
     useContentStore();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -35,45 +34,40 @@ export function SeriesFormPage() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<VideoSeriesInput>({
-    resolver: zodResolver(videoSeriesSchema),
+  } = useForm<CourseInput>({
     defaultValues: {
-      title: "",
+      name: "",
       description: "",
-      thumbnail_url: "",
-      is_published: false,
-      display_order: 0,
+      sortOrder: 0,
     },
   });
 
   useEffect(() => {
     if (isEditing) {
-      fetchSeries();
+      fetchCourses();
     }
-  }, [isEditing, fetchSeries]);
+  }, [isEditing, fetchCourses]);
 
   useEffect(() => {
-    if (isEditing && series.length > 0) {
-      const item = series.find((s) => s.id === id);
+    if (isEditing && courses.length > 0) {
+      const item = courses.find((c) => c.id === id);
       if (item) {
         reset({
-          title: item.title,
+          name: item.name,
           description: item.description || "",
-          thumbnail_url: item.thumbnail_url || "",
-          is_published: item.is_published,
-          display_order: item.display_order || 0,
+          sortOrder: item.sortOrder ?? 0,
         });
       }
     }
-  }, [isEditing, id, series, reset]);
+  }, [isEditing, id, courses, reset]);
 
-  const onSubmit = async (data: VideoSeriesInput) => {
+  const onSubmit = async (data: CourseInput) => {
     setIsSaving(true);
     try {
       if (isEditing && id) {
-        await updateSeries(id, data);
+        await updateCourse(id, data);
       } else {
-        await createSeries(data);
+        await createCourse(data);
       }
       navigate("/content");
     } finally {
@@ -82,7 +76,7 @@ export function SeriesFormPage() {
   };
 
   if (isLoading && isEditing) {
-    return <LoadingState message="Loading series..." />;
+    return <LoadingState message="Loading course..." />;
   }
 
   return (
@@ -96,13 +90,11 @@ export function SeriesFormPage() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Layers className="h-8 w-8" />
-            {isEditing ? "Edit Series" : "Create Series"}
+            <BookOpen className="h-8 w-8" />
+            {isEditing ? "Edit Course" : "Create Course"}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {isEditing
-              ? "Update series details."
-              : "Create a new video series."}
+            {isEditing ? "Update course details." : "Create a new course."}
           </p>
         </div>
       </div>
@@ -112,22 +104,20 @@ export function SeriesFormPage() {
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardHeader>
-            <CardTitle>Series Details</CardTitle>
-            <CardDescription>
-              Information about the video series.
-            </CardDescription>
+            <CardTitle>Course Details</CardTitle>
+            <CardDescription>Information about the course.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="name">Name *</Label>
               <Input
-                id="title"
+                id="name"
                 placeholder="Drum Fundamentals"
-                {...register("title")}
+                {...register("name", { required: "Name is required" })}
               />
-              {errors.title && (
+              {errors.name && (
                 <p className="text-sm text-destructive">
-                  {errors.title.message}
+                  {errors.name.message}
                 </p>
               )}
             </div>
@@ -136,28 +126,19 @@ export function SeriesFormPage() {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                placeholder="A comprehensive series covering..."
+                placeholder="A comprehensive course covering..."
                 rows={4}
                 {...register("description")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
+              <Label htmlFor="sortOrder">Sort Order</Label>
               <Input
-                id="thumbnail_url"
-                placeholder="https://..."
-                {...register("thumbnail_url")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="display_order">Display Order</Label>
-              <Input
-                id="display_order"
+                id="sortOrder"
                 type="number"
                 min="0"
-                {...register("display_order", { valueAsNumber: true })}
+                {...register("sortOrder", { valueAsNumber: true })}
               />
               <p className="text-xs text-muted-foreground">
                 Lower numbers appear first.
@@ -178,7 +159,7 @@ export function SeriesFormPage() {
                 ? "Saving..."
                 : isEditing
                 ? "Save Changes"
-                : "Create Series"}
+                : "Create Course"}
             </Button>
           </CardFooter>
         </Card>

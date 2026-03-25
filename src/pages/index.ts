@@ -20,7 +20,9 @@ export {
 export {
   ContentListPage,
   VideoFormPage,
-  SeriesFormPage,
+  CourseFormPage,
+  CourseUploadPage,
+  S3CleanupPage,
   ArtistFormPage,
 } from "./content";
 

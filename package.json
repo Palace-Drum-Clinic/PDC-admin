@@ -11,6 +11,11 @@
     "test:triggers": "node test-triggers.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1016.0",
+    "@aws-sdk/lib-storage": "^3.1016.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-slot": "^1.2.4",
     "@supabase/supabase-js": "^2.89.0",
